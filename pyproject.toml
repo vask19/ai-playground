@@ -1,0 +1,30 @@
+[project]
+name = "ai-playground"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "vask"}
+]
+license = {text = "MIT"}
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi (>=0.123.0,<0.124.0)",
+    "uvicorn (>=0.38.0,<0.39.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[dependency-groups]
+dev = [
+    "black (>=25.11.0,<26.0.0)",
+    "ruff (>=0.14.7,<0.15.0)",
+    "pytest (>=9.0.1,<10.0.0)",
+    "httpx (>=0.28.1,<0.29.0)"
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
