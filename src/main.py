@@ -1,7 +1,8 @@
 from fastapi import FastAPI
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from enum import Enum
-from src.llm import ask_llm
+from src.llm import ask_llm, ask_llm_stream
 from src import prompts
 
 app = FastAPI(title="AI Playground API")
@@ -54,3 +55,14 @@ def chat(request: ChatRequest):
     system_prompt = MODE_TO_PROMPT[request.mode]
     response = ask_llm(request.message, system_prompt)
     return ChatResponse(response=response, mode=request.mode)
+
+
+@app.post("/chat/stream")
+def chat_stream(request: ChatRequest):
+    system_prompt = MODE_TO_PROMPT[request.mode]
+    
+    def generate():
+        for chunk in ask_llm_stream(request.message, system_prompt):
+            yield chunk
+    
+    return StreamingResponse(generate(), media_type="text/plain")
