@@ -1,8 +1,8 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from enum import Enum
-from src.llm import ask_llm, ask_llm_stream
+from src.llm import ask_llm, ask_llm_stream, LLMError, LLMConnectionError, LLMRateLimitError
 from src import prompts
 
 app = FastAPI(title="AI Playground API")
@@ -35,6 +35,11 @@ class ChatResponse(BaseModel):
     mode: str
 
 
+class ErrorResponse(BaseModel):
+    error: str
+    error_type: str
+
+
 @app.get("/ping")
 def ping():
     return {"message": "pong"}
@@ -53,8 +58,19 @@ def list_modes():
 @app.post("/chat", response_model=ChatResponse)
 def chat(request: ChatRequest):
     system_prompt = MODE_TO_PROMPT[request.mode]
-    response = ask_llm(request.message, system_prompt)
-    return ChatResponse(response=response, mode=request.mode)
+    
+    try:
+        response = ask_llm(request.message, system_prompt)
+        return ChatResponse(response=response, mode=request.mode)
+    
+    except LLMRateLimitError as e:
+        raise HTTPException(status_code=429, detail=str(e))
+    
+    except LLMConnectionError as e:
+        raise HTTPException(status_code=503, detail=str(e))
+    
+    except LLMError as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/chat/stream")
@@ -66,3 +82,12 @@ def chat_stream(request: ChatRequest):
             yield chunk
     
     return StreamingResponse(generate(), media_type="text/plain")
+
+
+@app.get("/health")
+def health():
+    return {
+        "status": "healthy",
+        "service": "ai-playground",
+        "llm_provider": "together.ai"
+    }
